@@ -1,0 +1,5 @@
+# TTS Voice Generation Server
+fastapi>=0.100.0
+uvicorn>=0.13.0
+pocket-tts>=1.1.0
+scipy>=1.10.0
