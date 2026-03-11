@@ -6,6 +6,8 @@ Run with: uvicorn server:app --host 0.0.0.0 --port 8000
 
 import io
 import logging
+from contextlib import asynccontextmanager
+from pathlib import Path
 
 import scipy.io.wavfile
 from fastapi import FastAPI, HTTPException
@@ -27,6 +29,16 @@ PREDEFINED_VOICES = [
     "cosette", "eponine", "azelma",
 ]
 
+# Custom cloned voices (safetensors path relative to project root).
+CUSTOM_VOICES = {
+    "coldfusion": Path(__file__).resolve().parent / "voices/safetensors/coldfusion-voice.safetensors",
+    "my-voice": Path(__file__).resolve().parent / "voices/safetensors/my-voice.safetensors",
+    "akhila": Path(__file__).resolve().parent / "voices/safetensors/akhila.safetensors",
+}
+
+# All available voices for validation.
+AVAILABLE_VOICES = list(PREDEFINED_VOICES) + list(CUSTOM_VOICES)
+
 # TTS model loaded once at startup.
 tts_model = None
 
@@ -36,23 +48,25 @@ class VoiceGenerateRequest(BaseModel):
     """Request body for POST /voice/generate."""
 
     text: str = Field(..., description="Text to convert to speech")
-    voice: str = Field(default="alba", description="Voice name (default: alba)")
+    voice: str = Field(default="alba", description="Voice name: alba, coldfusion, etc.")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Load TTS model at startup, no cleanup needed at shutdown."""
+    global tts_model
+    logger.info("Loading TTS model...")
+    tts_model = TTSModel.load_model()
+    logger.info("TTS model ready.")
+    yield
 
 
 # Create FastAPI app.
 app = FastAPI(
     title="TTS Voice Generation Server",
     description="Generate speech from text using predefined voices.",
+    lifespan=lifespan,
 )
-
-
-@app.on_event("startup")
-async def load_model():
-    """Load TTS model once when server starts."""
-    global tts_model
-    logger.info("Loading TTS model...")
-    tts_model = TTSModel.load_model()
-    logger.info("TTS model ready.")
 
 
 @app.post("/voice/generate", response_class=Response)
@@ -85,15 +99,16 @@ async def voice_generate(request: VoiceGenerateRequest):
             status_code=400,
             detail="voice cannot be empty",
         )
-    if voice not in PREDEFINED_VOICES:
+    if voice not in AVAILABLE_VOICES:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid voice '{voice}'. Available: {', '.join(PREDEFINED_VOICES)}",
+            detail=f"Invalid voice '{voice}'. Available: {', '.join(AVAILABLE_VOICES)}",
         )
 
     try:
-        # Get voice state for the requested voice.
-        voice_state = tts_model.get_state_for_audio_prompt(voice)
+        # Get voice state: custom safetensors path or predefined voice name.
+        voice_source = CUSTOM_VOICES.get(voice, voice)
+        voice_state = tts_model.get_state_for_audio_prompt(voice_source)
         # Generate audio from text.
         audio = tts_model.generate_audio(voice_state, text)
         # Convert to WAV bytes.
