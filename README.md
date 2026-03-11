@@ -8,7 +8,7 @@ Text-to-speech server using Pocket TTS (Kyutai). Supports predefined voices and 
 Create a .env file in the root of project
 ```
 HF_TOKEN=hugginface_token
-# Get the huggingface_token from https://huggingface.co/settings/tokens and allow access to the required repositories.
+# Get the huggingface_token from https://huggingface.co/settings/tokens and allow access to the required repositories (kyutai/pocket-tts, first get access to this model from https://huggingface.co/kyutai/pocket-tts).
 ```
 
 ## start.py
