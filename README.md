@@ -13,17 +13,33 @@ HF_TOKEN=hugginface_token
 
 ## start.py
 
-**What it does:** A simple script to try out Pocket TTS without running a server. It loads the model, picks a voice, generates speech from text, and saves the result as a WAV file.
+**What it does:** Generates speech from a markdown file using Pocket TTS. Loads the model, picks a voice, strips markdown syntax for natural speech, and saves the result as a WAV file.
 
-**When to use:** Quick tests, debugging, or when you want to generate one-off audio files from the command line.
+**When to use:** Quick tests, debugging, or generating audio from articles or notes stored in markdown.
+
+**Voices:** Predefined (alba, marius, javert, jean, fantine, cosette, eponine, azelma) or custom from `voices/safetensors` (coldfusion, my-voice, akhila).
 
 **Usage:**
 ```bash
 source venv/bin/activate
-python3 -m start.py
+# Default: reads input.md, writes output.wav, voice alba
+python start.py
+
+# Custom input, voice, and output
+python start.py --input article-01.md --voice akhila --output speech.wav
+
+# Short form
+python start.py -i my-article.md -v coldfusion -o out.wav
 ```
 
-Edit `start.py` to change the voice (`"alba"`, `"marius"`, etc.) or the text. Output is written to `output-2.wav` by default.
+**Options:**
+| Option | Short | Default | Description |
+|--------|-------|---------|-------------|
+| `--input` | `-i` | `input.md` | Markdown file to read text from |
+| `--output` | `-o` | `output.wav` | Output WAV file path |
+| `--voice` | `-v` | `alba` | Voice name (predefined or custom) |
+
+Markdown syntax (headers, bold, links) is stripped so the spoken output sounds natural.
 
 ---
 
